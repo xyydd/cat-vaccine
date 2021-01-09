@@ -1,0 +1,10 @@
+{
+  "navigationBarTitleText": "看看小可爱",
+  "usingComponents": {
+    "i-message": "/static/components/message/index",
+    "i-button": "/static/components/button/index",
+    "i-spin": "/static/components/spin/index",
+    "i-icon": "/static/components/icon/index",
+    "i-modal": "/static/components/modal/index"
+  }
+}

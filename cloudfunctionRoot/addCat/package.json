@@ -1,0 +1,13 @@
+{
+  "name": "addCat",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {},
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "wx-server-sdk": "~2.3.2",
+    "axios": "^0.21.1"
+  }
+}

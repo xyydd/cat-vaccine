@@ -1,0 +1,28 @@
+{
+  "pages": [
+    "pages/catList/main",
+    "pages/catDetail/main",
+    "pages/addCat/main",
+    "pages/record/main",
+    "pages/Damon/main"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#fff",
+    "navigationBarTitleText": "猫咪疫苗驱虫记录手册",
+    "navigationBarTextStyle": "black"
+  },
+  "tabBar": {
+    "list": [{
+      "pagePath": "pages/catList/main",
+      "iconPath": "/static/cat.png",
+      "selectedIconPath": "/static/catSelected.png",
+      "text": "你的猫咪狗狗们"
+    }, {
+      "pagePath": "pages/Damon/main",
+      "iconPath": "/static/mycat.png",
+      "selectedIconPath": "/static/mycatSelected.png",
+      "text": "我的猫咪"
+    }]
+  }
+}

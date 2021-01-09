@@ -1,0 +1,9 @@
+{
+  "navigationBarTitleText": "添加你的猫咪",
+  "usingComponents": {
+    "i-button": "/static/components/button/index",
+    "i-input": "/static/components/input/index",
+    "i-message": "/static/components/message/index",
+    "i-spin": "/static/components/spin/index"
+  }
+}

@@ -86,6 +86,9 @@ export default {
       vaccinetypes: ['请选择', '猫三联', '狂犬']
     }
   },
+  onShow () {
+    this.clear()
+  },
   onLoad (option) {
     console.log(option)
     this.type = option.type
@@ -97,6 +100,18 @@ export default {
     }
   },
   methods: {
+    clear () {
+      this.loading = false
+      this.catId = ''
+      this.isUpload = false
+      this.imagePath = ''
+      this.type = ''
+      this.code = ''
+      this.date = '请选择'
+      this.nextDate = '请选择'
+      this.insectRepellentType = 0
+      this.vaccinetype = 0
+    },
     subscribeMessage () {
       return new Promise((resolve, reject) => {
         mpvue.requestSubscribeMessage({

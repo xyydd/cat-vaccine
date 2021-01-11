@@ -73,7 +73,7 @@ export default {
       this.getCatDetail(this.catId)
     }
   },
-  onHide () {
+  onShow () {
     this.clear()
   },
   methods: {

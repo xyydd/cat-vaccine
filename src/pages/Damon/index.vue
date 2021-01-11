@@ -7,7 +7,10 @@
       <div class="cat-text detail">2019-06-06</div>
       <div class="cat-text detail">10斤(目前还是)</div>
       <div class="cat-text detail">割了</div>
-      <image class="cat-avatar" src="https://6465-dev-7g313d3r179dfe1c-1304701411.tcb.qcloud.la/eAPUIBYbaKTcgNYMSTDKbcMSbAXBIJFC.jpg?sign=401987698ee38cb2efceac523dcfa200&t=1610161534" mode="aspectFill"></image>
+      <image
+        class="cat-avatar"
+        src="https://6465-dev-7g313d3r179dfe1c-1304701411.tcb.qcloud.la/eAPUIBYbaKTcgNYMSTDKbcMSbAXBIJFC.jpg?sign=401987698ee38cb2efceac523dcfa200&t=1610161534"
+        mode="aspectFill"></image>
     </div>
     <div class="flex flex-wrap justify-content-space-around">
       <image

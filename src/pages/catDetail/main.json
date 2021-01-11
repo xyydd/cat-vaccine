@@ -5,6 +5,8 @@
     "i-button": "/static/components/button/index",
     "i-spin": "/static/components/spin/index",
     "i-icon": "/static/components/icon/index",
-    "i-modal": "/static/components/modal/index"
+    "i-modal": "/static/components/modal/index",
+    "i-tabs": "/static/components/tabs/index",
+    "i-tab": "/static/components/tab/index"
   }
 }

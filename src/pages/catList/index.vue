@@ -1,6 +1,6 @@
 <template>
   <div>
-    <i-button type="primary" @click="goto('/pages/addCat/main')">添加猫咪(狗狗也行)</i-button>
+    <i-button type="success" @click="goto('/pages/addCat/main')">添加猫咪(狗狗也行)</i-button>
     <div
       v-for="cat in catList"
       :key="_id"

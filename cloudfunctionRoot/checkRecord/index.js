@@ -29,6 +29,7 @@ exports.main = async (event, context) => {
 
 async function sendMessage (records) {
   for (let i = 0; i < records.length; i++) {
+    console.log(records[i])
     if (records[i].isSub) {
       const record = records[i]
       let msg = ''

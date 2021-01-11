@@ -8,11 +8,18 @@
       <image class="bg-image" :src="cat.avatarUrl" mode="aspectFill"></image>
       <div class="cat-text">{{cat.catName}}</div>
       <div class="cat-text detail">{{cat.birthday}}</div>
-      <div class="cat-text detail">{{cat.weight}}斤</div>
+      <div class="cat-text detail">{{cat.weight}}斤 <a href="">记录体重</a> </div>
       <div class="cat-text detail">{{cat.gender}}</div>
       <image class="cat-avatar" :src="cat.avatarUrl" mode="aspectFill"></image>
     </div>
+    <div class="weight-wrapper">
+      <canvas id="myChart" type="2d"></canvas>
+    </div>
     <div v-if="records.length > 0" class="records-wrapper">
+      <i-tabs :current="tab" @change="tabChange">
+        <i-tab  key="insectRepellent" title="驱虫"></i-tab>
+        <i-tab  key="vaccine" title="疫苗"></i-tab>
+      </i-tabs>
       <div
         v-for="record in records"
         :key="_id"
@@ -37,10 +44,10 @@
     </div>
     <div v-else style="text-align: center;color: #605C70;">
       还没有记录，去记录
-      <div class="flex justify-content-center">
-        <i-button type="success" shape="circle" size="small" @click.stop="goto(`/pages/record/main?type=vaccine&id=${cat._id}`)">记录疫苗</i-button>
-        <i-button type="success" shape="circle" size="small" @click.stop="goto(`/pages/record/main?type=insectRepellent&id=${cat._id}`)">记录驱虫</i-button>
-      </div>
+    </div>
+    <div class="flex justify-content-space-between fix-btn-group">
+      <i-button long="true" style="width: 50%;" type="success" size="large" @click.stop="goto(`/pages/record/main?type=vaccine&id=${cat._id}`)">记录疫苗</i-button>
+      <i-button long="true" style="width: 50%;border-left: 1px solid #fff;" size="large" type="success" @click.stop="goto(`/pages/record/main?type=insectRepellent&id=${cat._id}`)">记录驱虫</i-button>
     </div>
     <i-modal title="删除后无法恢复，提醒也会删除，确认删除？" :visible="visible1" @ok="handleDelete" @cancel="visible1 = false">
     </i-modal>
@@ -51,17 +58,55 @@
 <script>
 import store from './store'
 import moment from 'moment'
+import '../../utils/changeGlobal'
+import _ from 'lodash'
 import { $Message } from '../../utils/base/index'
+import Chart from 'chart.js'
+
 export default {
   data () {
     return {
+      tab: 'insectRepellent',
       loading: false,
       deleteId: '',
       visible1: false,
-      catId: ''
+      catId: '',
+      myChart: undefined
     }
   },
   computed: {
+    option () {
+      return {
+        type: 'line',
+        data: {
+          labels: ['January', 'February', 'March', 'April', 'May', 'June', 'July'],
+          datasets: [{
+            label: 'My Second dataset',
+            fill: false,
+            data: [1, 2, 3, 4, 5, 6, 7]
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            xAxes: [{
+              display: true,
+              scaleLabel: {
+                display: true,
+                labelString: 'Month'
+              }
+            }],
+            yAxes: [{
+              display: true,
+              scaleLabel: {
+                display: true,
+                labelString: 'Value'
+              }
+            }]
+          }
+        }
+      }
+    },
     cat () {
       const cat = store.state.cat
       const g = ['割了', '弟弟', '妹妹']
@@ -73,17 +118,19 @@ export default {
       return cat
     },
     records () {
-      const records = store.state.records
+      const records = _.cloneDeep(store.state.records)
+      const res = []
       for (let i = 0; i < records.length; i++) {
         records[i].nextDate = moment(records[i].nextDate).format('YYYY-MM-DD')
-        if (records[i].type === 'vaccine') {
+        if (records[i].type === 'vaccine' && this.tab === 'vaccine') {
           records[i].type = '疫苗'
           if (Number(records[i].vaccinetype) === 1) {
             records[i].kind = '猫三联'
           } else {
             records[i].kind = '狂犬'
           }
-        } else {
+          res.push(records[i])
+        } else if (records[i].type === 'insectRepellent' && this.tab === 'insectRepellent') {
           records[i].type = '驱虫'
           if (Number(records[i].insectRepellentType) === 1) {
             records[i].kind = '体外驱虫'
@@ -92,13 +139,14 @@ export default {
           } else {
             records[i].kind = '体内外一体'
           }
+          res.push(records[i])
         }
       }
-      return records
+      console.log(res)
+      return res
     }
   },
   onLoad (option) {
-    console.log(option)
     this.catId = option.id
     this.loading = true
     setTimeout(() => {
@@ -106,8 +154,22 @@ export default {
     }, 500)
     store.dispatch('getCatRecords', this.catId)
     store.dispatch('getCatDetail', this.catId)
+    this.initChart()
   },
   methods: {
+    initChart () {
+      const query = mpvue.createSelectorQuery()
+      query.select('#myChart')
+        .fields({ node: true, size: true })
+        .exec((res) => {
+          const canvas = res[0].node
+          const ctx = canvas.getContext('2d')
+          this.myChart = new Chart(ctx, this.option)
+        })
+    },
+    tabChange (e) {
+      this.tab = e.mp.detail.key
+    },
     goto (url) {
       mpvue.navigateTo({
         url: url
@@ -204,12 +266,18 @@ export default {
   box-shadow: 0px 3px 8px rgba(0, 0, 0, 0.1);
   z-index: 2;
 }
+.records-wrapper {
+  margin-bottom: 58px;
+}
 .records-wrapper .record-card {
   background: #FFFFFF;
   box-shadow: 0px 8px 24px rgba(51, 51, 51, 0.05);
   border-radius: 40px;
   padding: 24px;
   margin-bottom: 20px;
+}
+.records-wrapper .record-card:nth-child(2) {
+  margin-top: 20px;
 }
 .record-header {
   padding-bottom: 12px;
@@ -252,5 +320,15 @@ export default {
   top: 5px;
   width: calc(100% - 60px);
   z-index: 3;
+}
+.fix-btn-group {
+  position: fixed;
+  bottom: 0px;
+  z-index: 3;
+  width: 100%;
+}
+.weight-wrapper, ec-canvas {
+  width: 100%;
+  height: 200px;
 }
 </style>

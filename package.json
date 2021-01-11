@@ -24,6 +24,8 @@
     "lint": "eslint --ext .js,.vue src"
   },
   "dependencies": {
+    "chart.js": "^2.9.4",
+    "lodash": "^4.17.20",
     "moment": "^2.29.1",
     "mpvue": "^2.0.0",
     "vuex": "^3.0.1"

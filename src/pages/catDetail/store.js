@@ -16,11 +16,9 @@ const store = new Vuex.Store({
       state.res = res
     },
     handleCatRecords (state, data) {
-      console.log(data)
       state.records = data
     },
     handleCat (state, data) {
-      console.log(data)
       state.cat = data[0]
     }
   },
@@ -34,13 +32,11 @@ const store = new Vuex.Store({
       })
         .then(res => {
           const data = res.result.data
-          console.log('1', data)
           const fileIds = data.map(item => {
             if (item.codeImage && item.codeImage !== '') {
               return item.codeImage
             }
           }).filter(item => item)
-          console.log(fileIds)
           mpvue.$getTempFile(fileIds)
             .then(res => {
               commit('handleCatRecords', mpvue.$mergeTempFile(data, res, 'codeImage'))

@@ -12,11 +12,12 @@ exports.main = async (event, context) => {
     const t = moment(moment().format('YYYY-MM-DD'), 'YYYY-MM-DD').toDate()
     const m = moment(moment().add(1, 'days').format('YYYY-MM-DD'), 'YYYY-MM-DD').toDate()
     db.collection('Records').where({
+      type: _.neq('weight'),
       nextDate: _.and(_.lte(m), _.gt(t))
     }).get()
       .then(res => {
         const records = res.data
-        // console.log(records)
+        console.log(records)
         sendMessage(records)
         resolve(true)
       })
@@ -29,7 +30,7 @@ exports.main = async (event, context) => {
 
 async function sendMessage (records) {
   for (let i = 0; i < records.length; i++) {
-    console.log(records[i])
+    // console.log(records[i])
     if (records[i].isSub) {
       const record = records[i]
       let msg = ''
@@ -39,7 +40,7 @@ async function sendMessage (records) {
       } else {
         msg = '该驱虫啦'
       }
-      console.log(cat, msg)
+      console.log(cat.catName, msg, moment(record.nextDate).format('YYYY-MM-DD'))
       cloud.openapi.subscribeMessage.send({
         touser: record.openid,
         page: `/page/catDetail/main?id=${record._id}`,

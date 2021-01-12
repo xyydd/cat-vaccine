@@ -1,7 +1,0 @@
-{
-  "navigationBarTitleText": "猫咪疫苗驱虫记录手册",
-  "usingComponents": {
-    "i-button": "/static/components/button/index",
-    "i-spin": "/static/components/spin/index"
-  }
-}

@@ -6,6 +6,9 @@
     "pages/record/main",
     "pages/Damon/main"
   ],
+  "usingComponents": {
+    "i-button": "/static/components/button/index"
+  },
   "window": {
     "backgroundTextStyle": "light",
     "navigationBarBackgroundColor": "#fff",

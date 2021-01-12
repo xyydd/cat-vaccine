@@ -8,12 +8,12 @@
       <image class="bg-image" :src="cat.avatarUrl" mode="aspectFill"></image>
       <div class="cat-text">{{cat.catName}}</div>
       <div class="cat-text detail">{{cat.birthday}}</div>
-      <div class="cat-text detail">{{cat.weight}}斤 <a href="">记录体重</a> </div>
+      <div class="cat-text detail">{{cat.weight}}斤</div>
       <div class="cat-text detail">{{cat.gender}}</div>
       <image class="cat-avatar" :src="cat.avatarUrl" mode="aspectFill"></image>
     </div>
     <div class="weight-wrapper">
-      <canvas id="myChart" type="2d"></canvas>
+      <ec-canvas id="mychart-dom-line" canvas-id="mychart-line" :ec="ec"></ec-canvas>
     </div>
     <div v-if="records.length > 0" class="records-wrapper">
       <i-tabs :current="tab" @change="tabChange">
@@ -48,67 +48,132 @@
     <div class="flex justify-content-space-between fix-btn-group">
       <i-button long="true" style="width: 50%;" type="success" size="large" @click.stop="goto(`/pages/record/main?type=vaccine&id=${cat._id}`)">记录疫苗</i-button>
       <i-button long="true" style="width: 50%;border-left: 1px solid #fff;" size="large" type="success" @click.stop="goto(`/pages/record/main?type=insectRepellent&id=${cat._id}`)">记录驱虫</i-button>
+      <i-button long="true" style="width: 50%;border-left: 1px solid #fff;" size="large" type="success" @click.stop="picker = true">记录体重</i-button>
     </div>
     <i-modal title="删除后无法恢复，提醒也会删除，确认删除？" :visible="visible1" @ok="handleDelete" @cancel="visible1 = false">
+    </i-modal>
+    <i-modal title="体重" :visible="picker" @ok="handleSubmitWeight" @cancel="picker = false">
+      <picker @change="weightChange" :value="weight" :range="weights">
+        <view class="picker">
+          {{weights[weight]}}
+        </view>
+      </picker>
     </i-modal>
     <i-spin fix v-if="loading"></i-spin>
     <i-message id="message" />
   </div>
 </template>
 <script>
-import store from './store'
 import moment from 'moment'
 import '../../utils/changeGlobal'
-import _ from 'lodash'
+import cloneDeep from 'lodash/cloneDeep'
 import { $Message } from '../../utils/base/index'
-import Chart from 'chart.js'
+import * as echarts from '../../../static/components/ec-canvas/echarts'
 
+function setOption (chart, dates, weights) {
+  var option = {
+    title: {
+      text: '体重',
+      left: 'center'
+    },
+    grid: {
+      containLabel: true
+    },
+    tooltip: {
+      show: true,
+      trigger: 'axis'
+    },
+    xAxis: {
+      type: 'category',
+      boundaryGap: false,
+      data: dates
+      // show: false
+    },
+    yAxis: {
+      x: 'center',
+      type: 'value'
+      // splitLine: {
+      //   lineStyle: {
+      //     type: 'dashed'
+      //   }
+      // }
+      // show: false
+    },
+    series: [{
+      name: 'A',
+      type: 'line',
+      smooth: true,
+      data: weights
+    }]
+  }
+
+  chart.setOption(option)
+  return chart
+}
 export default {
   data () {
     return {
+      recordsData: [],
+      catData: {
+        gender: 0,
+        age: 12,
+        birthday: '',
+        weight: 0,
+        catName: ''
+      },
+      ecComponent: {},
+      ec: {
+        lazyLoad: true
+      },
+      picker: false,
       tab: 'insectRepellent',
       loading: false,
       deleteId: '',
       visible1: false,
       catId: '',
-      myChart: undefined
+      myChart: undefined,
+      weight: 0,
+      weights: (() => {
+        let res = ['请点击选择']
+        for (let i = 1; i < 101; i++) {
+          res.push(i + ' 斤')
+        }
+        res.push('100+斤，太重啦赶快减肥！')
+        return res
+      })()
     }
   },
   computed: {
     option () {
-      return {
-        type: 'line',
-        data: {
-          labels: ['January', 'February', 'March', 'April', 'May', 'June', 'July'],
-          datasets: [{
-            label: 'My Second dataset',
-            fill: false,
-            data: [1, 2, 3, 4, 5, 6, 7]
-          }]
-        },
-        options: {
-          responsive: true,
-          scales: {
-            xAxes: [{
-              display: true,
-              scaleLabel: {
-                display: true,
-                labelString: 'Month'
-              }
-            }],
-            yAxes: [{
-              display: true,
-              scaleLabel: {
-                display: true,
-                labelString: 'Value'
-              }
-            }]
+      const records = cloneDeep(this.recordsData)
+        .filter(item => {
+          return item.type === 'weight'
+        })
+        .sort((a, b) => {
+          return moment(a.date).isBefore(b.date)
+        })
+        .slice(-7)
+      const weights = []
+      const dates = []
+      if (records.length > 0) {
+        const last = cloneDeep(records[records.length - 1])
+        if (records.length < 7) {
+          const len = 7 - records.length
+          for (let i = 0; i < len; i++) {
+            last.date = moment(last.date, 'YYYY-MM-DD').add(1, 'days').format('YYYY-MM-DD')
+            records.push(cloneDeep(last))
           }
         }
+        for (let i = 0; i < records.length; i++) {
+          weights.push(records[i].weight)
+          dates.push(records[i].date)
+        }
       }
+      this.init(dates, weights)
+      return {weights, dates}
     },
     cat () {
-      const cat = store.state.cat
+      const cat = this.catData
       const g = ['割了', '弟弟', '妹妹']
       cat.gender = g[cat.gender]
       cat.age = moment().diff(moment(cat.birthday, 'YYYY-MM-DD'), 'months')
@@ -118,7 +183,7 @@ export default {
       return cat
     },
     records () {
-      const records = _.cloneDeep(store.state.records)
+      const records = cloneDeep(this.recordsData)
       const res = []
       for (let i = 0; i < records.length; i++) {
         records[i].nextDate = moment(records[i].nextDate).format('YYYY-MM-DD')
@@ -142,30 +207,59 @@ export default {
           res.push(records[i])
         }
       }
-      console.log(res)
       return res
     }
   },
   onLoad (option) {
+    this.ecComponent = this.$mp.page.selectComponent('#mychart-dom-line')
     this.catId = option.id
     this.loading = true
     setTimeout(() => {
       this.loading = false
     }, 500)
-    store.dispatch('getCatRecords', this.catId)
-    store.dispatch('getCatDetail', this.catId)
-    this.initChart()
+    this.getCatRecords(this.catId)
+    this.getCatDetail(this.catId)
   },
   methods: {
-    initChart () {
-      const query = mpvue.createSelectorQuery()
-      query.select('#myChart')
-        .fields({ node: true, size: true })
-        .exec((res) => {
-          const canvas = res[0].node
-          const ctx = canvas.getContext('2d')
-          this.myChart = new Chart(ctx, this.option)
+    init (dates, weights) {
+      this.ecComponent.init((canvas, width, height, dpr) => {
+        echarts.setCanvasCreator(() => canvas)
+        const chart = echarts.init(canvas, null, {
+          width: width,
+          height: height,
+          devicePixelRatio: dpr // new
         })
+        setOption(chart, dates, weights)
+      })
+    },
+    weightChange (e) {
+      this.weight = Number(e.target.value)
+    },
+    handleSubmitWeight () {
+      if (this.weight > 0) {
+        mpvue.cloud.callFunction({
+          name: 'addRecord',
+          data: {
+            type: 'weight',
+            isSub: false,
+            weight: this.weight,
+            date: moment().format('YYYY-MM-DD'),
+            catId: this.catId
+          }
+        })
+          .then(res => {
+            this.loading = false
+            $Message({
+              content: '记录成功',
+              type: 'success'
+            })
+            this.picker = false
+          })
+          .catch(err => {
+            this.picker = false
+            console.log(err)
+          })
+      }
     },
     tabChange (e) {
       this.tab = e.mp.detail.key
@@ -194,10 +288,64 @@ export default {
             type: 'success'
           })
           this.loading = false
-          store.dispatch('getCatRecords', this.catId)
+          this.getCatRecords(this.catId)
         })
         .catch(err => {
           this.loading = false
+          console.log(err)
+        })
+    },
+    handleCatRecords (data) {
+      this.recordsData = data
+    },
+    handleCat (data) {
+      this.catData = data[0]
+    },
+    getCatRecords (id) {
+      mpvue.cloud.callFunction({
+        name: 'getCatRecords',
+        data: {
+          catId: id
+        }
+      })
+        .then(res => {
+          const data = res.result.data
+          const fileIds = data.map(item => {
+            if (item.codeImage && item.codeImage !== '') {
+              return item.codeImage
+            }
+          }).filter(item => item)
+          mpvue.$getTempFile(fileIds)
+            .then(res => {
+              this.handleCatRecords(mpvue.$mergeTempFile(data, res, 'codeImage'))
+            })
+            .catch(error => {
+              console.log(error)
+            })
+        })
+        .catch(error => {
+          console.log(error)
+        })
+    },
+    getCatDetail (id) {
+      mpvue.cloud.callFunction({
+        name: 'getCat',
+        data: {
+          id: id
+        }
+      })
+        .then(res => {
+          const data = [res.result.data]
+          const fileIds = data.map(item => item.avatarUrl)
+          mpvue.$getTempFile(fileIds)
+            .then(res => {
+              this.handleCat(mpvue.$mergeTempFile(data, res))
+            })
+            .catch(error => {
+              console.log(error)
+            })
+        })
+        .catch(err => {
           console.log(err)
         })
     }
@@ -207,8 +355,9 @@ export default {
 <style>
 .detail-wrapper {
   background: #F5F5F5;
-  height: 100vh;
+  /*height: 100vh;*/
   overflow-y: auto;
+  position: relative;
 }
 .cat-header {
   height: 126px;
@@ -268,6 +417,7 @@ export default {
 }
 .records-wrapper {
   margin-bottom: 58px;
+  min-height: 200px;
 }
 .records-wrapper .record-card {
   background: #FFFFFF;
@@ -330,5 +480,6 @@ export default {
 .weight-wrapper, ec-canvas {
   width: 100%;
   height: 200px;
+  /*position: relative;*/
 }
 </style>

@@ -2,11 +2,11 @@
   "navigationBarTitleText": "看看小可爱",
   "usingComponents": {
     "i-message": "/static/components/message/index",
-    "i-button": "/static/components/button/index",
     "i-spin": "/static/components/spin/index",
     "i-icon": "/static/components/icon/index",
     "i-modal": "/static/components/modal/index",
     "i-tabs": "/static/components/tabs/index",
-    "i-tab": "/static/components/tab/index"
+    "i-tab": "/static/components/tab/index",
+    "ec-canvas": "/static/components/ec-canvas/ec-canvas"
   }
 }

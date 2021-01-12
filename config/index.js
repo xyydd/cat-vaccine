@@ -47,7 +47,8 @@ module.exports = {
     // `npm run build --report`
     // Set to `true` or `false` to always turn it on or off
     bundleAnalyzerReport: process.env.npm_config_report,
-    fileExt: fileExt
+    fileExt: fileExt,
+    mode: 'production',
   },
   dev: {
     env: require('./dev.env'),

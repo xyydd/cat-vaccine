@@ -35,18 +35,18 @@
   </div>
 </template>
 <script>
-import store from './store'
 import moment from 'moment'
 
 export default {
   data () {
     return {
-      authUser: false
+      authUser: false,
+      catListData: []
     }
   },
   computed: {
     catList () {
-      const catList = store.state.catList
+      const catList = this.catListData
       const g = ['割了', '弟弟', '妹妹']
       for (let i = 0; i < catList.length; i++) {
         if (catList[i].weight > 100) {
@@ -63,13 +63,36 @@ export default {
     }
   },
   onShow () {
-    store.dispatch('getCatList')
+    this.getCatList()
   },
   methods: {
     goto (url) {
       mpvue.navigateTo({
         url: url
       })
+    },
+    handleCatList (data) {
+      this.catListData = data
+    },
+    getCatList () {
+      mpvue.cloud.callFunction({
+        name: 'getCatList'
+      })
+        .then(res => {
+          console.log(res)
+          const data = res.result.data
+          const fileIds = data.map(item => item.avatarUrl)
+          mpvue.$getTempFile(fileIds)
+            .then(res => {
+              this.handleCatList(mpvue.$mergeTempFile(data, res))
+            })
+            .catch(error => {
+              console.log(error)
+            })
+        })
+        .catch(err => {
+          console.log(err)
+        })
     }
   }
 }

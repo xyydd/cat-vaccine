@@ -1,6 +1,6 @@
 <template>
   <div>
-    <i-button type="success" @click="goto('/pages/addCat/main')">添加猫咪(狗狗也行)</i-button>
+    <i-button type="warning" @click="goto('/pages/addCat/main')">添加猫咪(狗狗也行)</i-button>
     <div
       v-for="cat in catList"
       :key="_id"
@@ -28,20 +28,41 @@
           <div class="flex justify-content-space-between">
             <i-button type="success" shape="circle" size="small" @click.stop="goto(`/pages/record/main?type=vaccine&id=${cat._id}`)">记录疫苗</i-button>
             <i-button type="success" shape="circle" size="small" @click.stop="goto(`/pages/record/main?type=insectRepellent&id=${cat._id}`)">记录驱虫</i-button>
+            <i-button type="success" shape="circle" size="small" @click.stop="showModal(cat._id)">记录体重</i-button>
           </div>
         </div>
       </i-card>
     </div>
+    <i-modal title="体重" :visible="picker" @ok="handleSubmitWeight" @cancel="picker = false">
+      <picker @change="weightChange" :value="weight" :range="weights">
+        <view class="picker">
+          {{weights[weight]}}
+        </view>
+      </picker>
+    </i-modal>
+    <i-message id="message" />
   </div>
 </template>
 <script>
 import moment from 'moment'
+import { $Message } from '../../utils/base'
 
 export default {
   data () {
     return {
+      picker: false,
+      pickerCat: '',
       authUser: false,
-      catListData: []
+      catListData: [],
+      weight: 0,
+      weights: (() => {
+        let res = ['请点击选择']
+        for (let i = 1; i < 101; i++) {
+          res.push(i + ' 斤')
+        }
+        res.push('100+斤，太重啦赶快减肥！')
+        return res
+      })()
     }
   },
   computed: {
@@ -66,6 +87,39 @@ export default {
     this.getCatList()
   },
   methods: {
+    showModal (id) {
+      this.picker = true
+      this.pickerCat = id
+    },
+    weightChange (e) {
+      this.weight = Number(e.target.value)
+    },
+    handleSubmitWeight () {
+      if (this.weight > 0) {
+        mpvue.cloud.callFunction({
+          name: 'addRecord',
+          data: {
+            type: 'weight',
+            isSub: false,
+            weight: this.weight,
+            date: moment().format('YYYY-MM-DD'),
+            catId: this.pickerCat
+          }
+        })
+          .then(res => {
+            this.loading = false
+            $Message({
+              content: '记录成功',
+              type: 'success'
+            })
+            this.picker = false
+          })
+          .catch(err => {
+            this.picker = false
+            console.log(err)
+          })
+      }
+    },
     goto (url) {
       mpvue.navigateTo({
         url: url

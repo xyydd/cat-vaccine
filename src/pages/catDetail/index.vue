@@ -12,8 +12,15 @@
       <div class="cat-text detail">{{cat.gender}}</div>
       <image class="cat-avatar" :src="cat.avatarUrl" mode="aspectFill"></image>
     </div>
-    <div class="weight-wrapper">
-      <ec-canvas id="mychart-dom-line" canvas-id="mychart-line" :ec="ec"></ec-canvas>
+    <div v-show="isShowWeight" class="qiun-charts" >
+      <canvas canvas-id="canvasLineA" id="canvasLineA" class="charts" :width="cWidth*pixelRatio" :height="cHeight*pixelRatio" :style="{'width':cWidth+'px','height':cHeight+'px'}" @touchstart="touchLineA" @touchmove="moveLineA" @touchend="touchEndLineA"></canvas>
+    </div>
+    <div v-show="isShowWeight" class="flex justify-content-space-around timeselect-wrapper">
+      <div class="timeselect-item" :class="{ 'timeselect-active': currentTime === 1 }" @click="changeTimeSelect(1)">近1月</div>
+      <div class="timeselect-item" :class="{ 'timeselect-active': currentTime === 3 }" @click="changeTimeSelect(3)">近3月</div>
+      <div class="timeselect-item" :class="{ 'timeselect-active': currentTime === 6 }" @click="changeTimeSelect(6)">近6月</div>
+      <div class="timeselect-item" :class="{ 'timeselect-active': currentTime === 12 }" @click="changeTimeSelect(12)">近1年</div>
+      <div class="timeselect-item" :class="{ 'timeselect-active': currentTime === 36 }" @click="changeTimeSelect(36)">近3年</div>
     </div>
     <div v-if="records.length > 0" class="records-wrapper">
       <i-tabs :current="tab" @change="tabChange">
@@ -63,56 +70,24 @@
     <i-message id="message" />
   </div>
 </template>
+
 <script>
-import moment from 'moment'
-import '../../utils/changeGlobal'
+/*eslint-disable*/
 import cloneDeep from 'lodash/cloneDeep'
 import { $Message } from '../../utils/base/index'
-import * as echarts from '../../../static/components/ec-canvas/echarts'
-
-function setOption (chart, dates, weights) {
-  var option = {
-    title: {
-      text: '体重',
-      left: 'center'
-    },
-    grid: {
-      containLabel: true
-    },
-    tooltip: {
-      show: true,
-      trigger: 'axis'
-    },
-    xAxis: {
-      type: 'category',
-      boundaryGap: false,
-      data: dates
-      // show: false
-    },
-    yAxis: {
-      x: 'center',
-      type: 'value'
-      // splitLine: {
-      //   lineStyle: {
-      //     type: 'dashed'
-      //   }
-      // }
-      // show: false
-    },
-    series: [{
-      name: 'A',
-      type: 'line',
-      smooth: true,
-      data: weights
-    }]
-  }
-
-  chart.setOption(option)
-  return chart
-}
+import moment from 'moment'
+import uCharts from '../../utils/u-charts.min'
+let _self
+let canvaLineA = null
 export default {
   data () {
     return {
+      isShowWeight: true,
+      currentTime: 1,
+      isRendered: false,
+      cWidth: mpvue.getSystemInfoSync().windowWidth,
+      cHeight: '200',
+      pixelRatio: 1,
       recordsData: [],
       catData: {
         gender: 0,
@@ -145,6 +120,7 @@ export default {
   },
   computed: {
     option () {
+      const days = moment().diff(moment().subtract(this.currentTime, 'months'), 'days')
       const records = cloneDeep(this.recordsData)
         .filter(item => {
           return item.type === 'weight'
@@ -152,25 +128,36 @@ export default {
         .sort((a, b) => {
           return moment(a.date).isBefore(b.date)
         })
-        .slice(-7)
-      const weights = []
+        .slice(-days)
+      const weights = {
+        name: 'cat',
+        data: []
+      }
       const dates = []
       if (records.length > 0) {
         const last = cloneDeep(records[records.length - 1])
-        if (records.length < 7) {
-          const len = 7 - records.length
+        if (records.length < days) {
+          const len = days - records.length
           for (let i = 0; i < len; i++) {
-            last.date = moment(last.date, 'YYYY-MM-DD').add(1, 'days').format('YYYY-MM-DD')
+            last.date = moment(last.date, 'YYYY-MM-DD').subtract(1, 'days').format('YYYY-MM-DD')
             records.push(cloneDeep(last))
           }
         }
+        records.reverse()
         for (let i = 0; i < records.length; i++) {
-          weights.push(records[i].weight)
+          weights.data.push(records[i].weight)
           dates.push(records[i].date)
         }
+        return {
+          categories: dates,
+          series: [weights]
+        }
       }
-      this.init(dates, weights)
-      return {weights, dates}
+      return {
+        categories: ['2012', '2013', '2014', '2015', '2016', '2017'],
+        series: []
+      }
+
     },
     cat () {
       const cat = this.catData
@@ -210,8 +197,25 @@ export default {
       return res
     }
   },
+  watch: {
+    option (v) {
+      if (v.series.length <= 0) {
+        this.isShowWeight = false
+      } else {
+        this.isShowWeight = true
+        setTimeout(() => {
+          if (!this.isRendered) {
+            this.showLineA("canvasLineA", v)
+          } else {
+            this.resetChartData(v)
+          }
+        }, 1000)
+      }
+    }
+  },
   onLoad (option) {
-    this.ecComponent = this.$mp.page.selectComponent('#mychart-dom-line')
+    this.isRendered = false
+    canvaLineA = null
     this.catId = option.id
     this.loading = true
     setTimeout(() => {
@@ -219,146 +223,213 @@ export default {
     }, 500)
     this.getCatRecords(this.catId)
     this.getCatDetail(this.catId)
+    _self = this
   },
   methods: {
-    init (dates, weights) {
-      this.ecComponent.init((canvas, width, height, dpr) => {
-        echarts.setCanvasCreator(() => canvas)
-        const chart = echarts.init(canvas, null, {
-          width: width,
-          height: height,
-          devicePixelRatio: dpr // new
-        })
-        setOption(chart, dates, weights)
+    changeTimeSelect (v) {
+      this.currentTime = v
+    },
+    showLineA (canvasId, chartData) {
+      const max = Math.max(...chartData.series[0].data) + 10
+      canvaLineA = new uCharts({
+        $this:_self,
+        canvasId: canvasId,
+        type: 'line',
+        colors:['#facc14', '#f04864', '#8543e0', '#90ed7d'],
+        fontSize:11,
+        padding:[15, 15, 0, 15],
+        legend:{
+          show: true,
+          padding: 5,
+          lineHeight: 11,
+          margin: 0,
+        },
+        dataLabel: false,
+        dataPointShape: false,
+        background: '#FFFFFF',
+        pixelRatio: _self.pixelRatio,
+        categories: chartData.categories,
+        series: chartData.series,
+        animation: true,
+        xAxis: {
+          type: 'grid',
+          gridColor: '#CCCCCC',
+          gridType: 'dash',
+          dashLength: 8,
+          rotateLabel: true,
+          disableGrid: true,
+          labelCount: 5
+        },
+        yAxis: {
+          gridType: 'dash',
+          gridColor: '#CCCCCC',
+          dashLength: 8,
+          showTitle: true,
+          data: [{
+            min: 0,
+            max: max,
+            title: '斤'
+          }]
+        },
+        width: _self.cWidth * _self.pixelRatio,
+        height: _self.cHeight * _self.pixelRatio,
+        extra: {
+          line: {
+            type: 'curve'
+          }
+        }
       })
+      canvaLineA.addEventListener('renderComplete', () => {
+        this.isRendered = true
+      })
+    },
+    resetChartData ({ categories, series }) {
+      canvaLineA.updateData({
+        series: series,
+        categories: categories
+      });
     },
     weightChange (e) {
       this.weight = Number(e.target.value)
     },
     handleSubmitWeight () {
-      if (this.weight > 0) {
+        if (this.weight > 0) {
+          mpvue.cloud.callFunction({
+            name: 'addRecord',
+            data: {
+              type: 'weight',
+              isSub: false,
+              weight: this.weight,
+              date: moment().format('YYYY-MM-DD'),
+              catId: this.catId
+            }
+          })
+            .then(res => {
+              this.loading = false
+              $Message({
+                content: '记录成功',
+                type: 'success'
+              })
+              this.picker = false
+            })
+            .catch(err => {
+              this.picker = false
+              console.log(err)
+            })
+        }
+      },
+    tabChange (e) {
+        this.tab = e.mp.detail.key
+      },
+    goto (url) {
+        mpvue.navigateTo({
+          url: url
+        })
+      },
+    handleModal (id) {
+        this.deleteId = id
+        this.visible1 = true
+      },
+    handleDelete () {
+        this.loading = true
+        this.visible1 = false
         mpvue.cloud.callFunction({
-          name: 'addRecord',
+          name: 'deleteRecord',
           data: {
-            type: 'weight',
-            isSub: false,
-            weight: this.weight,
-            date: moment().format('YYYY-MM-DD'),
-            catId: this.catId
+            id: this.deleteId
+          }
+        })
+          .then(() => {
+            $Message({
+              content: '删除成功',
+              type: 'success'
+            })
+            this.loading = false
+            this.getCatRecords(this.catId)
+          })
+          .catch(err => {
+            this.loading = false
+            console.log(err)
+          })
+      },
+    handleCatRecords (data) {
+        this.recordsData = data
+      },
+    handleCat (data) {
+        this.catData = data[0]
+      },
+    getCatRecords (id) {
+        mpvue.cloud.callFunction({
+          name: 'getCatRecords',
+          data: {
+            catId: id
           }
         })
           .then(res => {
-            this.loading = false
-            $Message({
-              content: '记录成功',
-              type: 'success'
-            })
-            this.picker = false
+            const data = res.result.data
+            const fileIds = data.map(item => {
+              if (item.codeImage && item.codeImage !== '') {
+                return item.codeImage
+              }
+            }).filter(item => item)
+            mpvue.$getTempFile(fileIds)
+              .then(res => {
+                this.handleCatRecords(mpvue.$mergeTempFile(data, res, 'codeImage'))
+              })
+              .catch(error => {
+                console.log(error)
+              })
+          })
+          .catch(error => {
+            console.log(error)
+          })
+      },
+    getCatDetail (id) {
+        mpvue.cloud.callFunction({
+          name: 'getCat',
+          data: {
+            id: id
+          }
+        })
+          .then(res => {
+            const data = [res.result.data]
+            const fileIds = data.map(item => item.avatarUrl)
+            mpvue.$getTempFile(fileIds)
+              .then(res => {
+                this.handleCat(mpvue.$mergeTempFile(data, res))
+              })
+              .catch(error => {
+                console.log(error)
+              })
           })
           .catch(err => {
-            this.picker = false
             console.log(err)
           })
       }
-    },
-    tabChange (e) {
-      this.tab = e.mp.detail.key
-    },
-    goto (url) {
-      mpvue.navigateTo({
-        url: url
-      })
-    },
-    handleModal (id) {
-      this.deleteId = id
-      this.visible1 = true
-    },
-    handleDelete () {
-      this.loading = true
-      this.visible1 = false
-      mpvue.cloud.callFunction({
-        name: 'deleteRecord',
-        data: {
-          id: this.deleteId
-        }
-      })
-        .then(() => {
-          $Message({
-            content: '删除成功',
-            type: 'success'
-          })
-          this.loading = false
-          this.getCatRecords(this.catId)
-        })
-        .catch(err => {
-          this.loading = false
-          console.log(err)
-        })
-    },
-    handleCatRecords (data) {
-      this.recordsData = data
-    },
-    handleCat (data) {
-      this.catData = data[0]
-    },
-    getCatRecords (id) {
-      mpvue.cloud.callFunction({
-        name: 'getCatRecords',
-        data: {
-          catId: id
-        }
-      })
-        .then(res => {
-          const data = res.result.data
-          const fileIds = data.map(item => {
-            if (item.codeImage && item.codeImage !== '') {
-              return item.codeImage
-            }
-          }).filter(item => item)
-          mpvue.$getTempFile(fileIds)
-            .then(res => {
-              this.handleCatRecords(mpvue.$mergeTempFile(data, res, 'codeImage'))
-            })
-            .catch(error => {
-              console.log(error)
-            })
-        })
-        .catch(error => {
-          console.log(error)
-        })
-    },
-    getCatDetail (id) {
-      mpvue.cloud.callFunction({
-        name: 'getCat',
-        data: {
-          id: id
-        }
-      })
-        .then(res => {
-          const data = [res.result.data]
-          const fileIds = data.map(item => item.avatarUrl)
-          mpvue.$getTempFile(fileIds)
-            .then(res => {
-              this.handleCat(mpvue.$mergeTempFile(data, res))
-            })
-            .catch(error => {
-              console.log(error)
-            })
-        })
-        .catch(err => {
-          console.log(err)
-        })
-    }
   }
 }
 </script>
+
 <style>
-.detail-wrapper {
-  background: #F5F5F5;
-  /*height: 100vh;*/
-  overflow-y: auto;
+/*样式的width和height一定要与定义的cWidth和cHeight相对应*/
+.qiun-charts {
+  width: 100%;
+  height: 400rpx;
+  background-color: #FFFFFF;
   position: relative;
 }
+
+.charts {
+  width: 100%;
+  height: 400rpx;
+  background-color: #FFFFFF;
+}
+.detail-wrapper {
+   background: #F5F5F5;
+   /*height: 100vh;*/
+   overflow-y: auto;
+   position: relative;
+ }
 .cat-header {
   height: 126px;
   padding: 30px 36px;
@@ -477,9 +548,19 @@ export default {
   z-index: 3;
   width: 100%;
 }
-.weight-wrapper, ec-canvas {
-  width: 100%;
-  height: 200px;
-  /*position: relative;*/
+.timeselect-wrapper {
+  background-color: #FFFFFF;
+  color: #999;
+  font-size: 12px;
+}
+.timeselect-wrapper .timeselect-item {
+  word-spacing: 5px;
+  padding: 0px 15px;
+  border-radius: 25px;
+  line-height: 26px;
+}
+.timeselect-wrapper .timeselect-item.timeselect-active {
+  background-color: rgba(92, 173, 255, .2);
+  color: #2d8cf0;
 }
 </style>

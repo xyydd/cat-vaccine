@@ -4,7 +4,8 @@
     "pages/catDetail/main",
     "pages/addCat/main",
     "pages/record/main",
-    "pages/Damon/main"
+    "pages/Damon/main",
+    "pages/uchartDemo/main"
   ],
   "usingComponents": {
     "i-button": "/static/components/button/index"

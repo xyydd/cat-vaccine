@@ -6,7 +6,6 @@
     "i-icon": "/static/components/icon/index",
     "i-modal": "/static/components/modal/index",
     "i-tabs": "/static/components/tabs/index",
-    "i-tab": "/static/components/tab/index",
-    "ec-canvas": "/static/components/ec-canvas/ec-canvas"
+    "i-tab": "/static/components/tab/index"
   }
 }

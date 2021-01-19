@@ -17,6 +17,12 @@ export default {
       mpvue.$getTempFile = getTempFile
       mpvue.$mergeTempFile = mergeTempFile
       mpvue.$tempFileList = []
+      mpvue.getSystemInfo({
+        success: function (res) {
+          mpvue.$width = res.screenWidth
+          mpvue.$pixelRatio = res.pixelRatio
+        }
+      })
     }
     if (mpvuePlatform === 'my') {
       logs = mpvue.getStorageSync({key: 'logs'}).data || []

@@ -1,8 +1,10 @@
 {
   "navigationBarTitleText": "你的猫咪狗狗们",
   "usingComponents": {
+    "i-message": "/static/components/message/index",
     "i-button": "/static/components/button/index",
     "i-spin": "/static/components/spin/index",
-    "i-card": "/static/components/card/index"
+    "i-card": "/static/components/card/index",
+    "i-modal": "/static/components/modal/index"
   }
 }
